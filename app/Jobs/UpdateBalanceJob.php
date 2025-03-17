@@ -6,6 +6,7 @@ use App\Models\User;
 use Illuminate\Contracts\Queue\ShouldBeUnique;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
+use Illuminate\Support\Facades\DB;
 
 class UpdateBalanceJob implements ShouldQueue,ShouldBeUnique
 {
@@ -45,7 +46,10 @@ class UpdateBalanceJob implements ShouldQueue,ShouldBeUnique
      */
     public function handle(): void
     {
-        $this->user->balance = $this->user->balance-$this->balance;
-        $this->user->save();
+        /**
+         * 考虑到并发场景 这里需要使用乐观锁机制处理
+         */
+        $db_balance = $this->user->balance;//查询未更新之前的余额
+        DB::table('user')->where(['id'=>$this->user->id,'balance'=>$db_balance])->update(['balance'=>$db_balance-$this->balance]);
     }
 }
